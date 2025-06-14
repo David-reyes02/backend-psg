@@ -1,4 +1,3 @@
-// index.js
 import express from 'express';
 import cors from 'cors';
 import Stripe from 'stripe';
@@ -7,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // Usar variable de entorno
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 app.use(cors());
 app.use(express.json());
@@ -23,9 +22,9 @@ app.get('/api/products', async (req, res) => {
         id: product.id,
         nameProduct: product.name,
         description: product.description,
-        img: product.images[0],
+        img: product.images[0] || null,
         price: (price?.unit_amount || 0) / 100,
-        priceId: price?.id
+        priceId: price?.id || null
       };
     });
 
@@ -36,4 +35,5 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-app.listen(3001, () => console.log('Servidor backend en http://localhost:3001'));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Servidor backend en http://localhost:${PORT}`));
