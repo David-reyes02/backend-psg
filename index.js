@@ -13,7 +13,7 @@ app.use(express.json());
 
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await stripe.products.list({ limit: 10 });
+    const products = await stripe.products.list({ limit: 20 });
     const prices = await stripe.prices.list();
 
     const data = products.data.map(product => {
