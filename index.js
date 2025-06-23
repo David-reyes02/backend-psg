@@ -14,7 +14,7 @@ app.use(express.json());
 app.get('/api/products', async (req, res) => {
   try {
     const products = await stripe.products.list({ limit: 20 });
-    const prices = await stripe.prices.list();
+    const prices = await stripe.prices.list({ limit: 20 });
 
     const data = products.data.map(product => {
       const price = prices.data.find(p => p.product === product.id);
