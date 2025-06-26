@@ -11,6 +11,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 app.use(cors());
 app.use(express.json());
 
+// Endpoint para listar productos con precios
 app.get('/api/products', async (req, res) => {
   try {
     const products = await stripe.products.list({ limit: 20 });
@@ -35,7 +36,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// Nuevo endpoint para producto individual
+// Endpoint para obtener un producto individual
 app.get('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -61,6 +62,38 @@ app.get('/api/products/:id', async (req, res) => {
   } catch (err) {
     console.error('Error en /api/products/:id:', err.message);
     res.status(500).json({ error: 'Error al obtener producto' });
+  }
+});
+
+// Endpoint para crear sesión de checkout en Stripe
+app.post('/api/create-checkout-session', async (req, res) => {
+  const { items } = req.body;
+
+  try {
+    const lineItems = items.map(item => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.nameProduct,
+          images: [item.img],
+        },
+        unit_amount: Math.round(item.price * 100),
+      },
+      quantity: item.quantity,
+    }));
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: 'https://psg-store.vercel.app/success',
+      cancel_url: 'https://psg-store.vercel.app/cancel',
+    });
+
+    res.json({ id: session.id });
+  } catch (err) {
+    console.error('Error en checkout:', err.message);
+    res.status(500).json({ error: 'Error al crear sesión de pago' });
   }
 });
 
