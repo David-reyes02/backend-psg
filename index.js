@@ -98,4 +98,4 @@ app.post('/api/create-checkout-session', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Servidor backend en http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Servidor backend corriendo en el puerto ${PORT}`));
