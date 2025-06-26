@@ -1,31 +1,32 @@
-import express from 'express';
-import cors from 'cors';
-import Stripe from 'stripe';
-import dotenv from 'dotenv';
+// server.js
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const Stripe = require('stripe');
 
 dotenv.config();
 
 const app = express();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
 
 app.use(cors());
 app.use(express.json());
 
-// Endpoint para listar productos con precios
+// Listado de productos con precios
 app.get('/api/products', async (req, res) => {
   try {
     const products = await stripe.products.list({ limit: 20 });
     const prices = await stripe.prices.list({ limit: 20 });
 
-    const data = products.data.map(product => {
-      const price = prices.data.find(p => p.product === product.id);
+    const data = products.data.map(p => {
+      const pr = prices.data.find(pri => pri.product === p.id);
       return {
-        id: product.id,
-        nameProduct: product.name,
-        description: product.description,
-        img: product.images[0] || null,
-        price: (price?.unit_amount || 0) / 100,
-        priceId: price?.id || null
+        id: p.id,
+        nameProduct: p.name,
+        description: p.description,
+        img: p.images[0] || null,
+        price: (pr?.unit_amount || 0) / 100,
+        priceId: pr?.id || null
       };
     });
 
@@ -36,39 +37,30 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// Endpoint para obtener un producto individual
+// Producto individual
 app.get('/api/products/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    const product = await stripe.products.retrieve(req.params.id);
+    const prices = await stripe.prices.list({ product: product.id, limit: 1 });
+    const pr = prices.data[0];
 
-    const product = await stripe.products.retrieve(id);
-    if (!product) {
-      return res.status(404).json({ error: 'Producto no encontrado' });
-    }
-
-    const prices = await stripe.prices.list({ product: id });
-    const price = prices.data[0];
-
-    const data = {
+    res.json({
       id: product.id,
       nameProduct: product.name,
       description: product.description,
       img: product.images[0] || null,
-      price: (price?.unit_amount || 0) / 100,
-      priceId: price?.id || null
-    };
-
-    res.json(data);
+      price: (pr?.unit_amount || 0) / 100,
+      priceId: pr?.id || null
+    });
   } catch (err) {
     console.error('Error en /api/products/:id:', err.message);
     res.status(500).json({ error: 'Error al obtener producto' });
   }
 });
 
-// Endpoint para crear sesión de checkout en Stripe
+// Crear sesión de pago
 app.post('/api/create-checkout-session', async (req, res) => {
   const { items } = req.body;
-
   try {
     const lineItems = items.map(item => ({
       price_data: {
@@ -92,10 +84,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
     res.json({ id: session.id });
   } catch (err) {
-    console.error('Error en checkout:', err.message);
+    console.error('Error al crear checkout:', err.message);
     res.status(500).json({ error: 'Error al crear sesión de pago' });
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Servidor backend corriendo en el puerto ${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Servidor backend corriendo en puerto ${PORT}`));
